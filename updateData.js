@@ -14,11 +14,10 @@ const gamesMap = {
   '4D': '4D'
 };
 
-// Converts "July 17, 2025" to "2025-07-17"
+// Convert "July 17, 2025" to "2025-07-17"
 function parseDate(text) {
   const d = new Date(text);
-  if (!isNaN(d)) return d.toISOString().split('T')[0];
-  return null;
+  return !isNaN(d) ? d.toISOString().split('T')[0] : null;
 }
 
 async function fetchAndUpdateResults() {
@@ -26,13 +25,10 @@ async function fetchAndUpdateResults() {
     const { data: html } = await axios.get('https://www.lottopcso.com/');
     const $ = cheerio.load(html);
 
-    // Loop through all draw result containers
     const gameSections = $('section[id^="results"]');
 
     gameSections.each((_, section) => {
       const sectionElement = $(section);
-
-      // Match the game from heading (like "Ultra Lotto 6/58")
       const gameTitle = sectionElement.find('h2').text().trim();
       const gameKey = Object.keys(gamesMap).find(k => gameTitle.includes(k));
       if (!gameKey) return;
@@ -54,7 +50,7 @@ async function fetchAndUpdateResults() {
         let jackpot = null;
         const jackpotText = blockElement.find('.result-jackpot').text().trim();
         if (jackpotText) {
-          jackpot = jackpotText.replace(/[\\n\\t,]/g, '').replace(/[^\\d]/g, '');
+          jackpot = jackpotText.replace(/[\n\t,]/g, '').replace(/[^\\d]/g, '');
         }
 
         const newDraw = {
@@ -64,16 +60,21 @@ async function fetchAndUpdateResults() {
         };
 
         const filePath = path.join(__dirname, 'data', `${game}.json`);
-        let existing = [];
-        if (fs.existsSync(filePath)) {
-          existing = JSON.parse(fs.readFileSync(filePath));
+
+        // Create file if it doesn't exist
+        if (!fs.existsSync(filePath)) {
+          fs.writeFileSync(filePath, '[]');
         }
+
+        let existing = JSON.parse(fs.readFileSync(filePath));
 
         const alreadyExists = existing.some(e => e.date === drawDate);
         if (!alreadyExists) {
           existing.unshift(newDraw);
           fs.writeFileSync(filePath, JSON.stringify(existing, null, 2));
-          console.log(`✅ ${game} updated for ${drawDate}`);
+          console.log(`✅ Added to ${game}.json for ${drawDate}`, newDraw);
+        } else {
+          console.log(`ℹ️ Already exists in ${game}.json for ${drawDate}`);
         }
       });
     });
