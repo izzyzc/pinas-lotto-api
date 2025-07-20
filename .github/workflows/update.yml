@@ -2,7 +2,7 @@ name: Auto-Update Lotto Results
 
 on:
   schedule:
-    - cron: '30 11 * * *'  # Runs daily at 7:30 PM PH time (11:30 UTC)
+    - cron: '30 11 * * *'
   workflow_dispatch:
 
 jobs:
@@ -18,7 +18,9 @@ jobs:
           node-version: '18'
 
       - name: Install dependencies
-        run: npm install axios cheerio
+        run: |
+          npm init -y  # In case it's not committed
+          npm install axios cheerio
 
       - name: Run the update script
         run: node updateData.js
@@ -28,7 +30,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/
-          git commit -m "🤖 Auto-update lotto results"
+          git diff --cached --quiet || git commit -m "🤖 Auto-update lotto results"
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
