@@ -19,7 +19,7 @@ jobs:
           node-version: '18'
 
       - name: Run update script
-        run: npm install axios cheerio
+        # run: npm install axios cheerio
         run: node updateData.js
 
       - name: Commit and push updated data
