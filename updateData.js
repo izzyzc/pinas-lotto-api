@@ -1,4 +1,3 @@
-
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
@@ -15,7 +14,12 @@ const gamesMap = {
   '4D': '4D'
 };
 
-const today = new Date().toISOString().split('T')[0];
+function parseDate(text) {
+  // Converts "July 17, 2025" to "2025-07-17"
+  const d = new Date(text);
+  if (!isNaN(d)) return d.toISOString().split('T')[0];
+  return null;
+}
 
 async function fetchAndUpdateResults() {
   try {
@@ -30,17 +34,29 @@ async function fetchAndUpdateResults() {
       if (!gameKey) return;
 
       const game = gamesMap[gameKey];
-      const numbers = [];
 
+      // Extract draw date
+      const drawDateText = $(section).find('.result-date').text().trim();
+      const drawDate = parseDate(drawDateText);
+      if (!drawDate) return;
+
+      // Extract drawn numbers
+      const numbers = [];
       $(section).find('.draw-result .draw-ball').each((_, el) => {
         numbers.push($(el).text().trim());
       });
 
-      if (numbers.length === 0) return;
+      // Extract jackpot if available
+      let jackpot = null;
+      const jackpotText = $(section).find('.result-jackpot').text().trim();
+      if (jackpotText) {
+        jackpot = jackpotText.replace(/[\\n\\t,]/g, '').replace(/[^\\d]/g, '');
+      }
 
       const newDraw = {
-        date: today,
-        numbers: numbers
+        date: drawDate,
+        numbers,
+        ...(jackpot && { jackpot })
       };
 
       const filePath = path.join(__dirname, 'data', `${game}.json`);
@@ -49,9 +65,9 @@ async function fetchAndUpdateResults() {
         existing = JSON.parse(fs.readFileSync(filePath));
       }
 
-      const updated = [newDraw, ...existing.filter(e => e.date !== today)];
+      const updated = [newDraw, ...existing.filter(e => e.date !== drawDate)];
       fs.writeFileSync(filePath, JSON.stringify(updated, null, 2));
-      console.log(`✅ Scraped and updated ${game}`);
+      console.log(`✅ ${game} updated for ${drawDate}`);
     });
 
   } catch (err) {
