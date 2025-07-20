@@ -5,6 +5,9 @@ on:
     - cron: '30 11 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write  # 👈 IMPORTANT: allow git push
+
 jobs:
   update:
     runs-on: ubuntu-latest
